@@ -1,8 +1,11 @@
-use crate::Icon;
 use kurbo::Size;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{collections::HashMap, fs};
+
+use generate_icons::Icon;
+
+use crate::MaterialIcon;
 
 static ICON_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^ic_(.*)_(\d+)px\.svg$").unwrap());
 const ICON_CATEGORIES: &[&str] = &[
@@ -24,8 +27,8 @@ const ICON_CATEGORIES: &[&str] = &[
     "toggle",
 ];
 
-pub(crate) fn find_icons() -> Vec<Icon> {
-    let mut icons: HashMap<String, Icon> = HashMap::new();
+pub(crate) fn find_icons() -> Vec<MaterialIcon> {
+    let mut icons: HashMap<String, MaterialIcon> = HashMap::new();
     for category in ICON_CATEGORIES.iter() {
         for icon in icon_category(category) {
             icons.insert(icon.const_name(), icon);
@@ -35,7 +38,7 @@ pub(crate) fn find_icons() -> Vec<Icon> {
 }
 
 /// Find all the largest icons in the category.
-fn icon_category(name: &str) -> impl Iterator<Item = Icon> + 'static {
+fn icon_category(name: &str) -> impl Iterator<Item = MaterialIcon> + 'static {
     let category = name.to_string();
     let mut icons: HashMap<String, u32> = HashMap::new();
     for icon in fs::read_dir(&format!("../material-design-icons/{}/svg/production", name)).unwrap()
@@ -58,7 +61,7 @@ fn icon_category(name: &str) -> impl Iterator<Item = Icon> + 'static {
             *icon_entry = size;
         }
     }
-    icons.into_iter().map(move |(prefix, size)| Icon {
+    icons.into_iter().map(move |(prefix, size)| MaterialIcon {
         category: category.clone(),
         prefix,
         size: Size {

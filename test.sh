@@ -2,8 +2,8 @@
 
 set -e
 
-pushd generate-icons
+pushd generate-material-icons
 cargo run
 popd
-mv generate-icons/icons.rs src/icons.rs.in
+mv generate-material-icons/icons.rs src/icons.rs.in
 cargo check

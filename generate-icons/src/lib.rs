@@ -1,48 +1,14 @@
-mod find;
-
-use crate::find::find_icons;
-use heck::ShoutySnakeCase;
 use roxmltree::{Document, Node};
 use std::{
     fmt::{self, Display, Write},
     fs,
-    io::Write as IoWrite,
     path::PathBuf,
 };
 
-fn main() {
-    let mut out = fs::File::create("icons.rs").unwrap();
-    for icon in find_icons() {
-        writeln!(out, "{}", icon.implement()).unwrap();
-    }
-}
-
-#[derive(Debug)]
-struct Icon {
-    category: String,
-    prefix: String,
-    size: kurbo::Size,
-}
-
-impl Icon {
-    fn path(&self) -> PathBuf {
-        format!(
-            "../material-design-icons/{}/svg/production/ic_{}_{}px.svg",
-            self.category,
-            self.prefix,
-            MaterialSize(self.size)
-        )
-        .into()
-    }
-
-    fn const_name(&self) -> String {
-        let name = self.prefix.to_shouty_snake_case();
-        if name.starts_with("3") {
-            format!("THREE_{}", &name[1..])
-        } else {
-            name
-        }
-    }
+pub trait Icon {
+    fn path(&self) -> PathBuf;
+    fn const_name(&self) -> String;
+    fn size(&self) -> kurbo::Size;
 
     fn shapes(&self) -> Vec<KurboShape> {
         println!("Getting {}", self.path().display());
@@ -52,17 +18,31 @@ impl Icon {
         assert!(svg.has_tag_name("svg"));
         assert_eq!(
             svg.attribute("width").unwrap(),
-            MaterialSize(self.size).to_string()
+            IconSize(self.size()).to_string()
         );
         assert_eq!(
             svg.attribute("height").unwrap(),
-            MaterialSize(self.size).to_string()
+            IconSize(self.size()).to_string()
         );
         svg.children().map(|el| KurboShape::from_svg(el)).collect()
     }
+}
 
-    fn implement(&self) -> Implement {
-        Implement(self)
+pub struct IconSize(kurbo::Size);
+
+impl IconSize {
+    pub fn new(size: kurbo::Size) -> Self {
+        IconSize(size)
+    }
+}
+
+impl Display for IconSize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.0.width == self.0.height {
+            write!(f, "{}", self.0.width)
+        } else {
+            write!(f, "{}x{}", self.0.width, self.0.height)
+        }
     }
 }
 
@@ -73,7 +53,7 @@ pub enum KurboShape {
 }
 
 impl KurboShape {
-    fn from_svg(input: Node) -> Self {
+    pub fn from_svg(input: Node) -> Self {
         match input.tag_name().name() {
             "circle" => {
                 let cx = input.attribute("cx").unwrap().parse::<f64>().unwrap();
@@ -102,9 +82,9 @@ impl Display for KurboShape {
             KurboShape::BezPath(path) => {
                 f.write_str("IconShape::PathEls(&[")?;
                 for el in path.iter() {
-                    write!(f, "{},", KurboEl(el))?;
+                    write!(f, "\n            {},", KurboEl(el))?;
                 }
-                f.write_str("])")
+                f.write_str("\n        ])")
             }
         }
     }
@@ -156,37 +136,31 @@ impl Display for KurboEl {
     }
 }
 
-pub struct Implement<'a>(&'a Icon);
+pub struct Implement<'a, I: Icon>(&'a I);
 
-impl Display for Implement<'_> {
+impl<'a, I: Icon> Implement<'a, I> {
+    pub fn new(icon: &'a I) -> Self {
+        Implement(icon)
+    }
+}
+
+impl<I: Icon> Display for Implement<'_, I> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut shapes = String::new();
         for shape in self.0.shapes() {
-            writeln!(shapes, "{},", shape)?;
+            writeln!(shapes, "\n        {},", shape)?;
         }
         write!(
             f,
             r#"
 pub const {}: IconShapes = IconShapes {{
-    shapes: &[{}],
+    shapes: &[{}    ],
     size: {},
 }};
         "#,
             self.0.const_name(),
             shapes,
-            KurboSize(self.0.size)
+            KurboSize(self.0.size())
         )
-    }
-}
-
-pub struct MaterialSize(kurbo::Size);
-
-impl Display for MaterialSize {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.0.width == self.0.height {
-            write!(f, "{}", self.0.width)
-        } else {
-            write!(f, "{}x{}", self.0.width, self.0.height)
-        }
     }
 }

@@ -10,5 +10,6 @@ druid = "0.6"
 [workspace]
 members = [
     ".",
-    "generate-icons"
+    "generate-icons",
+    "generate-material-icons",
 ]
