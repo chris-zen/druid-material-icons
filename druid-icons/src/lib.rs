@@ -99,6 +99,12 @@ impl Shape for IconShape {
             IconShape::Circle(circle) => Box::new(circle.to_bez_path(tolerance)),
         }
     }
+    fn into_bez_path(self, tolerance: f64) -> BezPath {
+        match self {
+            IconShape::PathEls(els) => els.into_bez_path(tolerance),
+            IconShape::Circle(circle) => circle.into_bez_path(tolerance),
+        }
+    }
     fn area(&self) -> f64 {
         match self {
             IconShape::PathEls(els) => els.area(),
@@ -117,17 +123,11 @@ impl Shape for IconShape {
             IconShape::Circle(circle) => circle.winding(pt),
         }
     }
+
     fn bounding_box(&self) -> Rect {
         match self {
             IconShape::PathEls(els) => els.bounding_box(),
             IconShape::Circle(circle) => circle.bounding_box(),
-        }
-    }
-
-    fn into_bez_path(self, tolerance: f64) -> BezPath {
-        match self {
-            IconShape::PathEls(els) => els.into_bez_path(tolerance),
-            IconShape::Circle(circle) => circle.into_bez_path(tolerance),
         }
     }
     fn as_circle(&self) -> Option<Circle> {
