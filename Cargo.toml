@@ -7,6 +7,8 @@ edition = "2018"
 [dependencies]
 druid = "0.6"
 
+druid-icons = { path = "druid-icons" }
+
 [workspace]
 members = [
     ".",
