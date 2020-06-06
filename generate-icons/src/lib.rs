@@ -1,4 +1,4 @@
-use roxmltree::{Document, Node};
+use roxmltree::{Document, Node, NodeType};
 use std::{
     fmt::{self, Display, Write},
     fs,
@@ -18,13 +18,26 @@ pub trait Icon {
         assert!(svg.has_tag_name("svg"));
         assert_eq!(
             svg.attribute("width").unwrap(),
-            IconSize(self.size()).to_string()
+            self.size().width.to_string()
         );
         assert_eq!(
             svg.attribute("height").unwrap(),
-            IconSize(self.size()).to_string()
+            self.size().height.to_string()
         );
-        svg.children().map(|el| KurboShape::from_svg(el)).collect()
+        let mut shapes = Vec::new();
+        extract_shapes(svg, &mut shapes);
+        shapes
+    }
+}
+
+fn extract_shapes(node: Node, shapes: &mut Vec<KurboShape>) {
+    if node.node_type() == NodeType::Element {
+        let tag_name = node.tag_name().name();
+        match tag_name {
+            "svg" | "g" => node.children().for_each(|child| extract_shapes(child, shapes)),
+            "path" | "circle" => shapes.push(KurboShape::from_svg(node)),
+            _ => println!("Skipping unrecognised node '{}'", tag_name)
+        }
     }
 }
 
@@ -65,7 +78,7 @@ impl KurboShape {
                 let d = input.attribute("d").unwrap();
                 KurboShape::BezPath(kurbo::BezPath::from_svg(d).unwrap())
             }
-            other => panic!("unrecognised node: {}", other),
+            other => panic!("unrecognised node: '{}'", other),
         }
     }
 }
