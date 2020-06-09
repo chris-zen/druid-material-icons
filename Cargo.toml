@@ -5,13 +5,12 @@ authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-druid = "0.6"
+druid = "^0.6"
 
-druid-icons = { path = "druid-icons" }
+druid-icon = { git = "https://github.com/chris-zen/kiro-synth", branch = "modulations" }
 
 [workspace]
 members = [
     ".",
     "generate-icons",
-    "generate-material-icons",
 ]
